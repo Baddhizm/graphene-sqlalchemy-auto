@@ -1,115 +1,177 @@
 from collections import OrderedDict
+from typing import List, Dict
 
-import graphene
-from graphene.types.generic import GenericScalar
-from graphene.types.objecttype import ObjectTypeOptions
-from graphene_sqlalchemy import SQLAlchemyConnectionField
-from graphene_sqlalchemy.types import sort_argument_for_object_type
+import inflection
 
-from .filter import filter_query
-from .types import SQLAlchemyObjectTypes
+from graphene import Connection, Node, Int
 
+from graphene.types.objecttype import ObjectTypeOptions, ObjectType
+from graphene_sqlalchemy.types import SQLAlchemyObjectType
+from sqlalchemy import inspect as sqla_inspect
+from sqlalchemy.engine import reflection, create_engine, Engine
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
-class CustomConnectionField(SQLAlchemyConnectionField):
-    def __init__(self, connection, *args, **kwargs):
-        """
-        add default query
-        filters
-        limit
-        offset
-        """
-        model = connection.Edge.node._type._meta.model
-        if "filters" not in kwargs:
-            kwargs.setdefault("filters", sort_argument_for_object_type(model))
-        elif "filters" in kwargs and kwargs["filters"] is None:
-            del kwargs["filters"]
-        if "limit" not in kwargs:
-            kwargs.setdefault("limit", sort_argument_for_object_type(model))
-        elif "limit" in kwargs and kwargs["limit"] is None:
-            del kwargs["limit"]
-        if "offset" not in kwargs:
-            kwargs.setdefault("offset", sort_argument_for_object_type(model))
-        elif "offset" in kwargs and kwargs["offset"] is None:
-            del kwargs["offset"]
-        super(CustomConnectionField, self).__init__(connection, *args, **kwargs)
-
-    @classmethod
-    def get_query(cls, model, info, **args):
-        query = super(CustomConnectionField, cls).get_query(model, info, **args)
-        if args.get("filters"):
-            query = filter_query(query, model, args["filters"])
-        if "limit" in args:
-            query = query.limit(args["limit"])
-        if "offset" in args:
-            query = query.offset(args["offset"])
-        return query
+from graphene_filter import FilterSet, FilterableConnectionField
+from graphene_filter.connection_field import FilterableFieldFactory
 
 
-class CustomConnection(graphene.relay.Connection):
-    """
-    CustomConnection
-
-        default add total count for query list
-    """
-
-    class Meta:
-        abstract = True
-
-    total_count = graphene.Int()
-
-    @staticmethod
-    def resolve_total_count(root, info):
-        return root.iterable.limit(None).offset(None).count()
+def create_model_filter(sqla_model: DeclarativeMeta, filter_class_name: str) -> FilterSet:
+    meta = type('Meta', (object,), {'model': sqla_model, 'fields': {
+        column.key: [...] for column in sqla_inspect(sqla_model).attrs
+    }})
+    filter_class = type(filter_class_name, (FilterSet,), {'Meta': meta})
+    return filter_class
 
 
-def model_connection(model):
-    connection = CustomConnection.create_type(
-        model.__name__ + "Connection", node=SQLAlchemyObjectTypes().get(model)
+def create_node_class(sqla_model: DeclarativeMeta, node_name: str, filters: Dict[DeclarativeMeta, FilterSet],
+                      get_table_description: bool = False, engine: Engine = None, table_description: str = None):
+    meta = type(
+        'Meta',
+        (object,),
+        {
+            'model': sqla_model,
+            'interfaces': (Node,),
+            'connection_field_factory': FilterableFieldFactory(filters),
+            'description': table_description if table_description else get_description_for_model(
+                sqla_model, engine) if get_table_description else ''
+        })
+    model_node_class = type(
+        node_name,
+        (SQLAlchemyObjectType,),
+        {'db_id': Int(description='Настоящий ИД из базы'), 'Meta': meta}
     )
-    return CustomConnectionField(
-        connection,
-        filters=GenericScalar(),
-        limit=graphene.types.Int(),
-        offset=graphene.types.Int(),
+    return model_node_class
+
+
+def filter_factory(sqla_model: DeclarativeMeta, custom_filters_path: str = None) -> FilterSet:
+    filter_class_name = inflection.camelize(sqla_model.__name__) + 'Filter'
+    if custom_filters_path:
+        try:
+            # import custom filters
+            exec('from %s import %s' % (custom_filters_path, filter_class_name))
+            filter_class = eval(filter_class_name)
+        except ImportError:
+            filter_class = create_model_filter(sqla_model, filter_class_name)
+    else:
+        filter_class = create_model_filter(sqla_model, filter_class_name)
+    return filter_class
+
+
+def custom_field_factory(filters: Dict[DeclarativeMeta, FilterSet]) -> FilterableConnectionField:
+    custom_field_class = type(
+        'CustomField',
+        (FilterableConnectionField,),
+        {'filters': filters}
     )
+    return custom_field_class
 
 
-# first lower
-def decapitalize(s, upper_rest=False):
-    return s[:1].lower() + (s[1:].upper() if upper_rest else s[1:])
+def node_factory(filters: Dict[DeclarativeMeta, FilterSet], sqla_model: DeclarativeMeta,
+                 custom_schemas_path: str = None, get_table_description: bool = False, engine: Engine = None) -> SQLAlchemyObjectType:
+    node_name = inflection.camelize(sqla_model.__name__) + 'Node'
+    if hasattr(sqla_model, "id"):
+        sqla_model.db_id = sqla_model.id
+    if custom_schemas_path:
+        try:
+            # import custom nodes
+            exec('from %s import %s' % (custom_schemas_path, node_name))
+            model_node_class = eval(node_name)
+            # replace to own meta with connection_field_factory
+            interfaces = model_node_class._meta.interfaces if model_node_class._meta.interfaces else (Node,)
+            description = model_node_class._meta.description if model_node_class._meta.description else ''
+            meta = type(
+                'Meta',
+                (object,),
+                {
+                    'model': model_node_class._meta.model,
+                    'interfaces': interfaces,
+                    'connection_field_factory': FilterableFieldFactory(filters),
+                    'description': description
+                })
+            model_node_class = type(
+                node_name,
+                (model_node_class,),
+                {'Meta': meta}
+            )
+        except ImportError:
+            model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, engine)
+    else:
+        model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, engine)
+
+    return model_node_class
 
 
-class QueryObjectType(graphene.ObjectType):
+def connections_factory(node: SQLAlchemyObjectType) -> Connection:
+    if 'Node' in node.__name__:
+        connection_name = node.__name__.replace('Node', 'Connection')
+    elif 'Schema' in node.__name__:
+        connection_name = node.__name__.replace('Schema', 'Connection')
+    meta = type(
+        'Meta',
+        (object,),
+        {'node': node})
+    connection_class = type(
+        connection_name,
+        (Connection,),
+        {'Meta': meta}
+    )
+    return connection_class
+
+
+def get_description_for_model(sqla_model: DeclarativeMeta, engine: Engine) -> str:
+    # TODO: too long get table description from database
+    insp = reflection.Inspector.from_engine(engine)
+    description = ''
+    try:
+        table_name = sqla_model.__tablename__
+        schema = sqla_model.__table_args__.get('schema') \
+            if isinstance(sqla_model.__table_args__, dict) else sqla_model.__table_args__[1].get('schema')
+        description = insp.get_table_comment(
+            table_name,
+            schema=schema
+        )['text']
+    except Exception as e:
+        print('Can\'t get table description for model: ', sqla_model.__name__, e)
+    return description
+
+
+class QueryObjectType(ObjectType):
     @classmethod
     def __init_subclass_with_meta__(
-            cls, declarative_base, exclude_models=None, _meta=None, **options
+            cls,
+            declarative_base: DeclarativeMeta,
+            exclude_models: List[str],
+            get_table_description: bool = False,
+            engine: Engine = None,
+            custom_schemas_path: str = None,
+            custom_filters_path: str = None,
+            _meta=None,
+            **options
     ):
-        """
-        :param declarative_base: sqlalchemy's base
-        :param exclude_models: exclude models
-        :param _meta:
-        :param options:
-        :return:
-        """
-        if exclude_models is None:
-            exclude_models = []
         if not _meta:
             _meta = ObjectTypeOptions(cls)
         fields = OrderedDict()
-        fields["node"] = graphene.relay.Node.Field()
-        models = [cls for cls in declarative_base._decl_class_registry.values() if
-                  isinstance(cls, type) and issubclass(cls, declarative_base)]  # all models
-        for model_obj in models:
-            if model_obj.__name__ in exclude_models:
-                continue
-            fields.update(
-                {
-                    decapitalize(model_obj.__name__): graphene.relay.Node.Field(
-                        SQLAlchemyObjectTypes().get(model_obj)
-                    ),
-                    "%s_list" % decapitalize(model_obj.__name__): model_connection(model_obj),
-                }
-            )
+        models = [m_cls for m_cls in declarative_base._decl_class_registry.values()
+                  if isinstance(m_cls, type) and issubclass(m_cls, declarative_base)
+                  if m_cls.__name__ not in exclude_models]
+
+        # https://github.com/art1415926535/graphene-sqlalchemy-filter#filter-registration-and-nested-fields-filters
+        # Filters
+        model_filters = {sqla_model: filter_factory(sqla_model, custom_filters_path)() for sqla_model in models}
+
+        custom_field = custom_field_factory(model_filters)
+        # Nodes
+        nodes = [node_factory(model_filters, sqla_model, custom_schemas_path, get_table_description, engine)
+                 for sqla_model in models]
+
+        # Connections
+        connections = [connections_factory(node) for node in nodes]
+
+        for connection in connections:
+            query_name = "all_%s" % inflection.underscore(connection.__name__).replace('_connection', '')
+            query_description = connection.Edge.node.type._meta.description
+            fields.update({query_name: custom_field(connection, description=query_description)})
+
         if _meta.fields:
             _meta.fields.update(fields)
         else:
