@@ -4,12 +4,6 @@ Generate default graphene schema from sqlalchemy model with filters base on:
 * [graphene-sqlalchemy](https://github.com/graphql-python/graphene-sqlalchemy.git)
 * [graphene-sqlalchemy-filter](https://github.com/art1415926535/graphene-sqlalchemy-filter)
 
-# Installation
-
-just run
-```shell script
-pip install graphene_sqlalchemy_auto
-```
 # Features
 
 - auto add `before` `after` `first` `last` to pagination
