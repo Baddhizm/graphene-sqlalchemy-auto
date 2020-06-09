@@ -14,8 +14,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
-    "graphene-sqlalchemy>=2.3.0",
-    "graphene-sqlalchemy-filter==1.10.2"
+    "graphene-sqlalchemy>=2.3.0"
 ]
 setuptools.setup(
     name="graphene-sqlalchemy-auto-filter",  # Replace with your own username
@@ -31,11 +30,15 @@ setuptools.setup(
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.5',
+    dependency_links=[
+        "git+git://github.com/Baddhizm/graphene-sqlalchemy-filter-py35#egg=graphene-sqlalchemy-filter-py35"
+    ]
 )

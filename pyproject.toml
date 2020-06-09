@@ -17,7 +17,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.6"
 graphene-sqlalchemy = ">=2.3.0,<3"
-graphene-sqlalchemy-filter = "1.10.2"
+graphene-sqlalchemy-filter-py35 = { git = "https://github.com/Baddhizm/graphene-sqlalchemy-filter-py35", branch = "master" }
 
 [tool.poetry.dev-dependencies]
 
