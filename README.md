@@ -1,5 +1,3 @@
-![](https://github.com/goodking-bq/graphene-sqlalchemy-auto/workflows/python-publish.yml/badge.svg)
-
 Generate default graphene schema from sqlalchemy model with filters base on:
 * [graphene-sqlalchemy](https://github.com/graphql-python/graphene-sqlalchemy.git)
 * [graphene-sqlalchemy-filter](https://github.com/art1415926535/graphene-sqlalchemy-filter)
