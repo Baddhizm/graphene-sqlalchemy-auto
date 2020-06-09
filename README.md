@@ -57,6 +57,8 @@ class Query(
         exclude_models = ["User"] # exclude models
         # custom_filters_path = 'your_package.filters'
         # custom_schemas_path = 'your_package.nodes'
+        # get_table_description = True  # if you need get table desc from existing DB, you also need set Engine 
+        # engine = Engine  # necessary if get_table_description is True
 
 
 class Mutation(MutationObjectType):
