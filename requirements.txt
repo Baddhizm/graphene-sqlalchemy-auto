@@ -1,2 +1,3 @@
 graphene-sqlalchemy>=2.3.0,<3
 git+git://github.com/Baddhizm/graphene-sqlalchemy-filter-py35#egg=graphene-sqlalchemy-filter-py35
+inflection

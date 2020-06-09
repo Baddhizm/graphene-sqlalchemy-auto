@@ -14,7 +14,8 @@ with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
-    "graphene-sqlalchemy>=2.3.0"
+    "graphene-sqlalchemy>=2.3.0",
+    "inflection"
 ]
 setuptools.setup(
     name="graphene-sqlalchemy-auto-filter",  # Replace with your own username

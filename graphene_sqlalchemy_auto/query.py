@@ -2,17 +2,14 @@ from collections import OrderedDict
 from typing import List, Dict
 
 import inflection
-
 from graphene import Connection, Node, Int
-
 from graphene.types.objecttype import ObjectTypeOptions, ObjectType
 from graphene_sqlalchemy.types import SQLAlchemyObjectType
+from graphene_sqlalchemy_filter import FilterSet
+from graphene_sqlalchemy_filter.connection_field import FilterableFieldFactory, FilterableConnectionField
 from sqlalchemy import inspect as sqla_inspect
 from sqlalchemy.engine import reflection, Engine
 from sqlalchemy.ext.declarative import DeclarativeMeta
-
-from graphene_filter import FilterSet, FilterableConnectionField
-from graphene_filter.connection_field import FilterableFieldFactory
 
 
 def create_model_filter(sqla_model: DeclarativeMeta, filter_class_name: str) -> FilterSet:
