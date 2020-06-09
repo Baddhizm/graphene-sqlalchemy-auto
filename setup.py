@@ -5,7 +5,7 @@ import setuptools
 
 _version_re = re.compile(r"version\s+=\s+(.*)")
 
-with open("pyproject.toml", "rb", encoding='utf-8') as f:
+with open("pyproject.toml", "rb") as f:
     version = str(
         ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1))
     )

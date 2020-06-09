@@ -8,7 +8,7 @@ from graphene import Connection, Node, Int
 from graphene.types.objecttype import ObjectTypeOptions, ObjectType
 from graphene_sqlalchemy.types import SQLAlchemyObjectType
 from sqlalchemy import inspect as sqla_inspect
-from sqlalchemy.engine import reflection, create_engine, Engine
+from sqlalchemy.engine import reflection, Engine
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
 from graphene_filter import FilterSet, FilterableConnectionField
