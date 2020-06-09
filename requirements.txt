@@ -1,1 +1,2 @@
-graphene-sqlalchemy= "<2.3.0"
+graphene-sqlalchemy= ">=2.3.0,<3"
+graphene-sqlalchemy-filter= "1.10.2"

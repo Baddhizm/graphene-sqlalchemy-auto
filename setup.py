@@ -15,13 +15,14 @@ with open("README.md", "r") as fh:
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
     "graphene-sqlalchemy>=2.3.0",
+    "graphene-sqlalchemy-filter==1.10.2"
 ]
 setuptools.setup(
-    name="graphene-sqlalchemy-auto",  # Replace with your own username
+    name="graphene-sqlalchemy-auto-filter",  # Replace with your own username
     version=version,
-    author="golsee",
-    author_email="z.shj726@gmail.com",
-    description="generate default graphene schema from sqlalchemy model base on graphene-sqlalchemy",
+    author="golsee, baddhizm",
+    author_email="z.shj726@gmail.com, frenggy@gmail.com",
+    description="generate default graphene schema with filters from sqlalchemy model base on graphene-sqlalchemy",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/goodking-bq/graphene-sqlalchemy-auto.git",

@@ -10,13 +10,14 @@ packages = [
 description = """generate default graphene schema from sqlalchemy model base on [graphene-sqlalchemy](https://github.com/graphql-python/graphene-sqlalchemy.git)
 """
 readme = "README.md"
-authors = ["golden <goodking_bq@hotmail.com>"]
+authors = ["golden <goodking_bq@hotmail.com>", "baddhizm <frenggy@gmail.com>"]
 license = "MIT"
 
 
 [tool.poetry.dependencies]
 python = "^3.6"
-graphene-sqlalchemy = "<2.3.0"
+graphene-sqlalchemy = ">=2.3.0,<3"
+graphene-sqlalchemy-filter = "1.10.2"
 
 [tool.poetry.dev-dependencies]
 
