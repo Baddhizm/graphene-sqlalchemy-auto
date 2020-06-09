@@ -8,7 +8,8 @@ from graphene_sqlalchemy.types import SQLAlchemyObjectType
 from graphene_sqlalchemy_filter import FilterSet
 from graphene_sqlalchemy_filter.connection_field import FilterableFieldFactory, FilterableConnectionField
 from sqlalchemy import inspect as sqla_inspect
-from sqlalchemy.engine import reflection, Engine
+from sqlalchemy.engine import Engine
+from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
 
@@ -21,7 +22,7 @@ def create_model_filter(sqla_model: DeclarativeMeta, filter_class_name: str) -> 
 
 
 def create_node_class(sqla_model: DeclarativeMeta, node_name: str, filters: Dict[DeclarativeMeta, FilterSet],
-                      get_table_description: bool = False, engine: Engine = None, table_description: str = None):
+                      get_table_description: bool = False, inspector: Inspector = None, table_description: str = None):
     meta = type(
         'Meta',
         (object,),
@@ -30,7 +31,7 @@ def create_node_class(sqla_model: DeclarativeMeta, node_name: str, filters: Dict
             'interfaces': (Node,),
             'connection_field_factory': FilterableFieldFactory(filters),
             'description': table_description if table_description else get_description_for_model(
-                sqla_model, engine) if get_table_description else ''
+                sqla_model, inspector) if get_table_description else ''
         })
     model_node_class = type(
         node_name,
@@ -64,7 +65,8 @@ def custom_field_factory(filters: Dict[DeclarativeMeta, FilterSet]) -> Filterabl
 
 
 def node_factory(filters: Dict[DeclarativeMeta, FilterSet], sqla_model: DeclarativeMeta,
-                 custom_schemas_path: str = None, get_table_description: bool = False, engine: Engine = None) -> SQLAlchemyObjectType:
+                 custom_schemas_path: str = None, get_table_description: bool = False,
+                 inspector: Inspector = None) -> SQLAlchemyObjectType:
     node_name = inflection.camelize(sqla_model.__name__) + 'Node'
     if hasattr(sqla_model, "id"):
         sqla_model.db_id = sqla_model.id
@@ -91,9 +93,9 @@ def node_factory(filters: Dict[DeclarativeMeta, FilterSet], sqla_model: Declarat
                 {'Meta': meta}
             )
         except ImportError:
-            model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, engine)
+            model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, inspector)
     else:
-        model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, engine)
+        model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, inspector)
 
     return model_node_class
 
@@ -115,15 +117,14 @@ def connections_factory(node: SQLAlchemyObjectType) -> Connection:
     return connection_class
 
 
-def get_description_for_model(sqla_model: DeclarativeMeta, engine: Engine) -> str:
+def get_description_for_model(sqla_model: DeclarativeMeta, inspector) -> str:
     # TODO: too long get table description from database
-    insp = reflection.Inspector.from_engine(engine)
     description = ''
     try:
         table_name = sqla_model.__tablename__
         schema = sqla_model.__table_args__.get('schema') \
             if isinstance(sqla_model.__table_args__, dict) else sqla_model.__table_args__[1].get('schema')
-        description = insp.get_table_comment(
+        description = inspector.get_table_comment(
             table_name,
             schema=schema
         )['text']
@@ -145,8 +146,13 @@ class QueryObjectType(ObjectType):
             _meta=None,
             **options
     ):
+        inspector = None
         if not _meta:
             _meta = ObjectTypeOptions(cls)
+
+        if get_table_description:
+            inspector = Inspector.from_engine(engine)
+
         fields = OrderedDict()
         models = [m_cls for m_cls in declarative_base._decl_class_registry.values()
                   if isinstance(m_cls, type) and issubclass(m_cls, declarative_base)
@@ -158,7 +164,7 @@ class QueryObjectType(ObjectType):
 
         custom_field = custom_field_factory(model_filters)
         # Nodes
-        nodes = [node_factory(model_filters, sqla_model, custom_schemas_path, get_table_description, engine)
+        nodes = [node_factory(model_filters, sqla_model, custom_schemas_path, get_table_description, inspector)
                  for sqla_model in models]
 
         # Connections
