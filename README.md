@@ -15,7 +15,7 @@ Generate default graphene schema from sqlalchemy model with filters base on:
 example:
 ```python
 from graphene_sqlalchemy_filter import FilterSet
-from graphene_sqlalchemy_auto_filter import QueryObjectType,MutationObjectType
+from graphene_sqlalchemy_auto import QueryObjectType,MutationObjectType
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import inspect
 from sqlalchemy.orm import sessionmaker
