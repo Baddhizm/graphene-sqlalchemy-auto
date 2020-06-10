@@ -15,6 +15,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
     "graphene-sqlalchemy>=2.3.0",
+    "graphene-sqlalchemy-filter-py35",
     "inflection"
 ]
 setuptools.setup(
@@ -40,6 +41,6 @@ setuptools.setup(
     ],
     python_requires='>=3.5',
     dependency_links=[
-        "git+git://github.com/Baddhizm/graphene-sqlalchemy-filter-py35#egg=graphene-sqlalchemy-filter-py35"
+        "git+git://github.com/Baddhizm/graphene-sqlalchemy-filter-py35@master#egg=graphene-sqlalchemy-filter-py35"
     ]
 )
