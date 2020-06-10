@@ -3,7 +3,7 @@ import graphene
 from fastapi import FastAPI
 from starlette.graphql import GraphQLApp
 
-from graphene_sqlalchemy_auto import MutationObjectType, QueryObjectType
+from graphene_sqlalchemy_auto_filter import MutationObjectType, QueryObjectType
 from . import models
 from .database import SessionLocal, engine
 
