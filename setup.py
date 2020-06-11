@@ -15,6 +15,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
     "graphene-sqlalchemy>=2.3.0",
+    "graphene-sqlalchemy-filter",
     "inflection"
 ]
 setuptools.setup(
