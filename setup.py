@@ -12,17 +12,20 @@ with open("pyproject.toml", "rb") as f:
 
 with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
+
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
     "graphene-sqlalchemy>=2.3.0",
     "graphene-sqlalchemy-filter-py35",
     "inflection"
 ]
+
 setuptools.setup(
     name="graphene-sqlalchemy-auto-filter",  # Replace with your own username
     version=version,
     author="golsee, baddhizm",
     author_email="z.shj726@gmail.com, frenggy@gmail.com",
+    license="MIT",
     description="generate default graphene schema with filters from sqlalchemy model base on graphene-sqlalchemy",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -39,6 +42,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.8",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+        'Programming Language :: Python :: Implementation :: PyPy',
     ],
     python_requires='>=3.5',
     dependency_links=[
