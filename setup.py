@@ -42,6 +42,6 @@ setuptools.setup(
     ],
     python_requires='>=3.5',
     dependency_links=[
-        'git+ssh://git@github.com/Baddhizm/graphene-sqlalchemy-filter-py35.git#egg=graphene-sqlalchemy-filter-py35',
+        'git+https://github.com/Baddhizm/graphene-sqlalchemy-filter-py35.git#egg=graphene-sqlalchemy-filter-py35',
     ]
 )
