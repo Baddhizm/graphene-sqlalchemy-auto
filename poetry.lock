@@ -92,6 +92,14 @@ six = ">=1.12"
 
 [[package]]
 category = "main"
+description = "A port of Ruby on Rails inflector to Python"
+name = "inflection"
+optional = false
+python-versions = ">=3.5"
+version = "0.5.0"
+
+[[package]]
+category = "main"
 description = "Promises/A+ implementation for Python"
 name = "promise"
 optional = false
@@ -152,8 +160,8 @@ postgresql_psycopg2cffi = ["psycopg2cffi"]
 pymysql = ["pymysql"]
 
 [metadata]
-content-hash = "61cd3296bcbe36c4dc305ac599a937e26744231b4bea95be335522393efff302"
-python-versions = "^3.6"
+content-hash = "49e9f49bd59ded342f5d31d4762567bd95892c99a3f4e6ffb04e529310e243cd"
+python-versions = "^3.5"
 
 [metadata.files]
 aniso8601 = [
@@ -176,6 +184,10 @@ graphql-core = [
 graphql-relay = [
     {file = "graphql-relay-2.0.1.tar.gz", hash = "sha256:870b6b5304123a38a0b215a79eace021acce5a466bf40cd39fa18cb8528afabb"},
     {file = "graphql_relay-2.0.1-py3-none-any.whl", hash = "sha256:ac514cb86db9a43014d7e73511d521137ac12cf0101b2eaa5f0a3da2e10d913d"},
+]
+inflection = [
+    {file = "inflection-0.5.0-py2.py3-none-any.whl", hash = "sha256:88b101b2668a1d81d6d72d4c2018e53bc6c7fc544c987849da1c7f77545c3bc9"},
+    {file = "inflection-0.5.0.tar.gz", hash = "sha256:f576e85132d34f5bf7df5183c2c6f94cfb32e528f53065345cf71329ba0b8924"},
 ]
 promise = [
     {file = "promise-2.3.tar.gz", hash = "sha256:dfd18337c523ba4b6a58801c164c1904a9d4d1b1747c7d5dbf45b693a49d93d0"},
