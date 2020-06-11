@@ -15,7 +15,7 @@ with open("README.md", "r", encoding='utf-8') as fh:
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
     "graphene-sqlalchemy>=2.3.0",
-    "graphene-sqlalchemy-filter-py35 @ git+git://github.com/Baddhizm/graphene-sqlalchemy-filter-py35@master",
+    "graphene-sqlalchemy-filter-py35",
     "inflection"
 ]
 setuptools.setup(
@@ -26,7 +26,7 @@ setuptools.setup(
     description="generate default graphene schema with filters from sqlalchemy model base on graphene-sqlalchemy",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/goodking-bq/graphene-sqlalchemy-auto.git",
+    url="https://github.com/Baddhizm/graphene-sqlalchemy-auto-filter.git",
     packages=setuptools.find_packages(),
     install_requires=requirements,
     classifiers=[
@@ -40,5 +40,8 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.5'
+    python_requires='>=3.5',
+    dependency_links=[
+        'git+ssh://git@github.com/Baddhizm/graphene-sqlalchemy-filter-py35.git#egg=graphene-sqlalchemy-filter-py35',
+    ]
 )
