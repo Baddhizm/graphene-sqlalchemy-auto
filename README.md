@@ -4,9 +4,9 @@ Generate default graphene schema from sqlalchemy model with filters base on:
 
 # Features
 
-- auto add `before` `after` `first` `last` to pagination
-- auto add `filter` filed based on `graphene-sqlalchemy-filter`, it also support nested filters
-- you can add your own custom filters and custom nodes/schemas
+- auto add queries (name example: `allNodeName`+`s`)
+- auto add `filter` (and pagination) fileds based on `graphene-sqlalchemy-filter`, it also support nested filters
+- you can add your own custom filters and custom nodes
 - auto add `dbId` for model's database id
 - mutation auto return ok for success,message for more information and output for model data
 
@@ -25,15 +25,15 @@ from graphene_sqlalchemy import SQLAlchemyObjectType
 Base = declarative_base() 
 Session = sessionmaker()
 
-class ShipAddressFilter(FilterSet):  # pattern for custom filters name: ModelName + Filter
+class UserFilter(FilterSet):  # pattern for custom filters name: ModelName + Filter
     class Meta:
-        model = ShipAddress
+        model = User
         fields = {
-            column.key: [...] for column in inspect(model).attrs
+            column.key: [...] for column in inspect(model).attrs  # add all filters for all fields
         }
 
 
-class ShipAddressNode(SQLAlchemyObjectType):  # pattern for custom node name: ModelName + Node
+class UserNode(SQLAlchemyObjectType):  # pattern for custom node name: ModelName + Node
     custom_field = graphene.String()
 
     def resolve_custom_field(self, info):
@@ -46,11 +46,10 @@ class Query(
 ):
     class Meta:
         declarative_base = Base
-        exclude_models = ["User"] # exclude models
+        exclude_models = ["Address"] # exclude models
         # custom_filters_path = 'your_package.filters'  # it scan for filters and compare filter name and model name 
         # custom_schemas_path = 'your_package.nodes'  # same as above
-        # get_table_description = True  # if you need get table desc from existing DB, you also need set Engine 
-        # engine = Engine  # necessary if get_table_description is True
+        # engine = Engine  # necessary if you want get table descriptions from existing table in DB
 
 
 class Mutation(MutationObjectType):
@@ -62,7 +61,6 @@ class Mutation(MutationObjectType):
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation)
-
 ```
 
 about many-to-many mutation

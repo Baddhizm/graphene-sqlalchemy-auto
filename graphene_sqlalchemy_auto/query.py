@@ -1,10 +1,11 @@
+import logging
 from collections import OrderedDict
 from typing import List, Dict
 
 import inflection
 from graphene import Connection, Node, Int
 from graphene.types.objecttype import ObjectTypeOptions, ObjectType
-from graphene_sqlalchemy.types import SQLAlchemyObjectType
+from graphene_sqlalchemy.types import SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
 from graphene_sqlalchemy_filter import FilterSet
 from graphene_sqlalchemy_filter.connection_field import FilterableFieldFactory, FilterableConnectionField
 from sqlalchemy import inspect as sqla_inspect
@@ -12,46 +13,20 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
-
-def create_model_filter(sqla_model: DeclarativeMeta, filter_class_name: str) -> FilterSet:
-    meta = type('Meta', (object,), {'model': sqla_model, 'fields': {
-        column.key: [...] for column in sqla_inspect(sqla_model).attrs
-    }})
-    filter_class = type(filter_class_name, (FilterSet,), {'Meta': meta})
-    return filter_class
-
-
-def create_node_class(sqla_model: DeclarativeMeta, node_name: str, filters: Dict[DeclarativeMeta, FilterSet],
-                      get_table_description: bool = False, inspector: Inspector = None, table_description: str = None):
-    meta = type(
-        'Meta',
-        (object,),
-        {
-            'model': sqla_model,
-            'interfaces': (Node,),
-            'connection_field_factory': FilterableFieldFactory(filters),
-            'description': table_description if table_description else get_description_for_model(
-                sqla_model, inspector) if get_table_description else ''
-        })
-    model_node_class = type(
-        node_name,
-        (SQLAlchemyObjectType,),
-        {'db_id': Int(description='Настоящий ИД из базы'), 'Meta': meta}
-    )
-    return model_node_class
+logger = logging.getLogger()
 
 
 def filter_factory(sqla_model: DeclarativeMeta, custom_filters_path: str = None) -> FilterSet:
     filter_class_name = inflection.camelize(sqla_model.__name__) + 'Filter'
-    if custom_filters_path:
-        try:
-            # import custom filters
-            exec('from %s import %s' % (custom_filters_path, filter_class_name))
-            filter_class = eval(filter_class_name)
-        except ImportError:
-            filter_class = create_model_filter(sqla_model, filter_class_name)
-    else:
-        filter_class = create_model_filter(sqla_model, filter_class_name)
+    try:
+        # import our filters if exists
+        exec('from %s import %s' % (custom_filters_path, filter_class_name))
+        filter_class = eval(filter_class_name)
+    except ImportError:
+        meta = type('Meta', (object,), {'model': sqla_model, 'fields': {
+            column.key: [...] for column in sqla_inspect(sqla_model).attrs
+        }})
+        filter_class = type(filter_class_name, (FilterSet,), {'Meta': meta})
     return filter_class
 
 
@@ -64,47 +39,73 @@ def custom_field_factory(filters: Dict[DeclarativeMeta, FilterSet]) -> Filterabl
     return custom_field_class
 
 
-def node_factory(filters: Dict[DeclarativeMeta, FilterSet], sqla_model: DeclarativeMeta,
-                 custom_schemas_path: str = None, get_table_description: bool = False,
+def node_factory(filters: Dict[DeclarativeMeta, FilterSet],
+                 sqla_model: DeclarativeMeta,
+                 custom_schemas_path: str = None,
                  inspector: Inspector = None) -> SQLAlchemyObjectType:
     node_name = inflection.camelize(sqla_model.__name__) + 'Node'
+    sqla_model_description = sqla_model.__table_args__.get('comment') \
+        if isinstance(sqla_model.__table_args__, dict) else sqla_model.__table_args__[1].get('comment')
+
     if hasattr(sqla_model, "id"):
         sqla_model.db_id = sqla_model.id
-    if custom_schemas_path:
-        try:
-            # import custom nodes
-            exec('from %s import %s' % (custom_schemas_path, node_name))
-            model_node_class = eval(node_name)
-            # replace to own meta with connection_field_factory
-            interfaces = model_node_class._meta.interfaces if model_node_class._meta.interfaces else (Node,)
-            description = model_node_class._meta.description if model_node_class._meta.description else ''
-            meta = type(
-                'Meta',
-                (object,),
-                {
-                    'model': model_node_class._meta.model,
-                    'interfaces': interfaces,
-                    'connection_field_factory': FilterableFieldFactory(filters),
-                    'description': description
-                })
-            model_node_class = type(
-                node_name,
-                (model_node_class,),
-                {'Meta': meta}
-            )
-        except ImportError:
-            model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, inspector)
-    else:
-        model_node_class = create_node_class(sqla_model, node_name, filters, get_table_description, inspector)
+    try:
+        # import our nodes if exists
+        exec('from %s import %s' % (custom_schemas_path, node_name))
+        model_node_class = eval(node_name)
+        # get some options just in case you forgot to specify in the node
+        interfaces = model_node_class._meta.interfaces if model_node_class._meta.interfaces else (Node,)
+        description_from_node = model_node_class._meta.description
+        if description_from_node:
+            description = description_from_node
+        elif sqla_model_description:
+            description = sqla_model_description
+        elif inspector:
+            description = get_description_for_model(sqla_model, inspector)
+        else:
+            description = ''
+        # create new options dict with our and existing options
+        options_dict = {
+            **{key: value for key, value in model_node_class._meta.__dict__.items()},
+            'connection_field_factory': FilterableFieldFactory(filters),
+            'description': description,
+            'interfaces': interfaces
+        }
+        # создаём класс с нашими настройками
+        options = type(
+            node_name + 'Options',
+            (SQLAlchemyObjectTypeOptions,),
+            options_dict
+        )
+        # переопределяем у импортированной ноды
+        model_node_class._meta = options
+    except ImportError:
+        if sqla_model_description:
+            description = sqla_model_description
+        elif inspector:
+            description = get_description_for_model(sqla_model, inspector)
+        else:
+            description = ''
+        meta = type(
+            'Meta',
+            (object,),
+            {
+                'model': sqla_model,
+                'interfaces': (Node,),
+                'connection_field_factory': FilterableFieldFactory(filters),
+                'description': description
+            })
+        model_node_class = type(
+            node_name,
+            (SQLAlchemyObjectType,),
+            {'db_id': Int(description='Настоящий ИД из базы'), 'Meta': meta}
+        )
 
     return model_node_class
 
 
 def connections_factory(node: SQLAlchemyObjectType) -> Connection:
-    if 'Node' in node.__name__:
-        connection_name = node.__name__.replace('Node', 'Connection')
-    elif 'Schema' in node.__name__:
-        connection_name = node.__name__.replace('Schema', 'Connection')
+    connection_name = node.__name__.replace('Node', 'Connection')
     meta = type(
         'Meta',
         (object,),
@@ -139,18 +140,18 @@ class QueryObjectType(ObjectType):
             cls,
             declarative_base: DeclarativeMeta,
             exclude_models: List[str],
-            get_table_description: bool = False,
             engine: Engine = None,
             custom_schemas_path: str = None,
             custom_filters_path: str = None,
             _meta=None,
             **options
     ):
+        logger.info('Generate auto query...')
         inspector = None
         if not _meta:
             _meta = ObjectTypeOptions(cls)
 
-        if get_table_description:
+        if engine:
             inspector = Inspector.from_engine(engine)
 
         fields = OrderedDict()
@@ -164,14 +165,13 @@ class QueryObjectType(ObjectType):
 
         custom_field = custom_field_factory(model_filters)
         # Nodes
-        nodes = [node_factory(model_filters, sqla_model, custom_schemas_path, get_table_description, inspector)
-                 for sqla_model in models]
+        nodes = [node_factory(model_filters, sqla_model, custom_schemas_path, inspector) for sqla_model in models]
 
         # Connections
         connections = [connections_factory(node) for node in nodes]
 
         for connection in connections:
-            query_name = "all_%s" % inflection.underscore(connection.__name__).replace('_connection', '')
+            query_name = "all_%ss" % inflection.underscore(connection.__name__).replace('_connection', '')
             query_description = connection.Edge.node.type._meta.description
             fields.update({query_name: custom_field(connection, description=query_description)})
 
@@ -179,6 +179,7 @@ class QueryObjectType(ObjectType):
             _meta.fields.update(fields)
         else:
             _meta.fields = fields
+        logger.info('Generate auto query done')
         return super(QueryObjectType, cls).__init_subclass_with_meta__(
             _meta=_meta, **options
         )

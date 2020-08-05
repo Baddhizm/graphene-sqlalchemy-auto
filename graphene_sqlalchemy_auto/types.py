@@ -12,6 +12,8 @@ except:
     from graphene_sqlalchemy.types import default_connection_field_factory
 finally:
     pass
+
+
 class DatabaseId(graphene.Interface):
     """
     auto add database id as dbId
