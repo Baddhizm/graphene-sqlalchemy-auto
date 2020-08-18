@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+from importlib import import_module
 from typing import List, Dict
 
 import inflection
@@ -20,9 +21,9 @@ def filter_factory(sqla_model: DeclarativeMeta, custom_filters_path: str = None)
     filter_class_name = inflection.camelize(sqla_model.__name__) + 'Filter'
     try:
         # import our filters if exists
-        exec('from %s import %s' % (custom_filters_path, filter_class_name))
-        filter_class = eval(filter_class_name)
-    except ImportError:
+        filter_class = getattr(import_module(custom_filters_path), filter_class_name)
+    except AttributeError:
+        logger.debug("Can't get {} from {} - auto generate".format(filter_class_name, custom_filters_path))
         meta = type('Meta', (object,), {'model': sqla_model, 'fields': {
             column.key: [...] for column in sqla_inspect(sqla_model).attrs
         }})
@@ -49,37 +50,15 @@ def node_factory(filters: Dict[DeclarativeMeta, FilterSet],
 
     if hasattr(sqla_model, "id"):
         sqla_model.db_id = sqla_model.id
+
+    our_node = False
     try:
         # import our nodes if exists
-        exec('from %s import %s' % (custom_schemas_path, node_name))
-        model_node_class = eval(node_name)
-        # get some options just in case you forgot to specify in the node
-        interfaces = model_node_class._meta.interfaces if model_node_class._meta.interfaces else (Node,)
-        description_from_node = model_node_class._meta.description
-        if description_from_node:
-            description = description_from_node
-        elif sqla_model_description:
-            description = sqla_model_description
-        elif inspector:
-            description = get_description_for_model(sqla_model, inspector)
-        else:
-            description = ''
-        # create new options dict with our and existing options
-        options_dict = {
-            **{key: value for key, value in model_node_class._meta.__dict__.items()},
-            'connection_field_factory': FilterableFieldFactory(filters),
-            'description': description,
-            'interfaces': interfaces
-        }
-        # создаём класс с нашими настройками
-        options = type(
-            node_name + 'Options',
-            (SQLAlchemyObjectTypeOptions,),
-            options_dict
-        )
-        # переопределяем у импортированной ноды
-        model_node_class._meta = options
-    except ImportError:
+        if custom_schemas_path:
+            model_node_class = getattr(import_module(custom_schemas_path), node_name)
+            our_node = True
+    except AttributeError:
+        logger.debug("Can't get {} from {} - auto generate".format(node_name, custom_schemas_path))
         if sqla_model_description:
             description = sqla_model_description
         elif inspector:
@@ -98,8 +77,36 @@ def node_factory(filters: Dict[DeclarativeMeta, FilterSet],
         model_node_class = type(
             node_name,
             (SQLAlchemyObjectType,),
-            {'db_id': Int(description='Настоящий ИД из базы'), 'Meta': meta}
+            {'db_id': Int(description='Real ID from DB'), 'Meta': meta}
         )
+
+    if our_node:
+        # get some options just in case you forgot to specify in the node
+        interfaces = model_node_class._meta.interfaces if model_node_class._meta.interfaces else (Node,)
+        description_from_node = model_node_class._meta.description
+        if description_from_node:
+            description = description_from_node
+        elif sqla_model_description:
+            description = sqla_model_description
+        elif inspector:
+            description = get_description_for_model(sqla_model, inspector)
+        else:
+            description = ''
+        # create new options dict with our and existing options
+        options_dict = {
+            **{key: value for key, value in model_node_class._meta.__dict__.items()},
+            'connection_field_factory': FilterableFieldFactory(filters),
+            'description': description,
+            'interfaces': interfaces
+        }
+        # create class with our settings
+        options = type(
+            node_name + 'Options',
+            (SQLAlchemyObjectTypeOptions,),
+            options_dict
+        )
+        # override in imported node
+        model_node_class._meta = options
 
     return model_node_class
 
@@ -119,7 +126,9 @@ def connections_factory(node: SQLAlchemyObjectType) -> Connection:
 
 
 def get_description_for_model(sqla_model: DeclarativeMeta, inspector) -> str:
-    # TODO: too long get table description from database
+    """
+    Get description from exsisting database
+    """
     description = ''
     try:
         table_name = sqla_model.__tablename__
@@ -130,7 +139,7 @@ def get_description_for_model(sqla_model: DeclarativeMeta, inspector) -> str:
             schema=schema
         )['text']
     except Exception as e:
-        print('Can\'t get table description for model: ', sqla_model.__name__, e)
+        logger.debug("Can't get table description for model {}, skip ".format(sqla_model.__name__, e))
     return description
 
 

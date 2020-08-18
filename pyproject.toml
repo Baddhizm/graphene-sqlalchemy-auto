@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "graphene-sqlalchemy-auto-filter"
-version = "0.8.0"
+version = "0.9.1"
 homepage = "https://github.com/Baddhizm/graphene-sqlalchemy-auto-filter"
 repository = "https://github.com/Baddhizm/graphene-sqlalchemy-auto-filter.git"
 documentation = "https://github.com/Baddhizm/graphene-sqlalchemy-auto-filter"
@@ -15,7 +15,7 @@ license = "MIT"
 
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = ">=3.5"
 graphene-sqlalchemy = ">=2.3.0,<3"
 graphene-sqlalchemy-filter-py35 = { git = "https://github.com/Baddhizm/graphene-sqlalchemy-filter-py35", branch = "master" }
 inflection = "0.5.0"

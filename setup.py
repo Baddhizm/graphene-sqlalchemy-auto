@@ -14,7 +14,6 @@ with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 
 requirements = [
-    # To keep things simple, we only support newer versions of Graphene
     "graphene-sqlalchemy>=2.3.0",
     "graphene-sqlalchemy-filter-py35 @ git+https://github.com/Baddhizm/graphene-sqlalchemy-filter-py35.git#egg=graphene-sqlalchemy-filter-py35",
     "inflection==0.5.0"
