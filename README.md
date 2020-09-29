@@ -49,8 +49,6 @@ class Query(
         exclude_models = ["Address"] # exclude models
         # custom_filters_path = 'your_package.filters'  # it scan for filters and compare filter name and model name 
         # custom_schemas_path = 'your_package.nodes'  # same as above
-        # engine = Engine  # necessary if you want get table descriptions from existing table in DB
-
 
 class Mutation(MutationObjectType):
     class Meta:
