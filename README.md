@@ -4,9 +4,9 @@ Generate default graphene schema from sqlalchemy model with filters base on:
 
 # Features
 
-- auto add queries (name example: `allNodeName`+`s`)
-- auto add `filter` (and pagination) fileds based on `graphene-sqlalchemy-filter`, it also support nested filters
-- you can add your own custom filters and custom nodes
+- auto add queries (query name example: `NodeName`+`List`)
+- auto add `filter`, `sort` fileds based on `graphene-sqlalchemy-filter`, it also support nested filters
+- you can add your own custom filters, custom nodes, custom connection field, custom conenction
 - auto add `dbId` for model's database id
 - mutation auto return ok for success,message for more information and output for model data
 
@@ -15,15 +15,24 @@ Generate default graphene schema from sqlalchemy model with filters base on:
 example:
 ```python
 from graphene_sqlalchemy_filter import FilterSet
-from graphene_sqlalchemy_auto import QueryObjectType,MutationObjectType
+from graphene_sqlalchemy_auto import QueryObjectType, MutationObjectType
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import inspect
+from sqlalchemy import inspect, Column, Integer, String
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.engine import create_engine
 import graphene
 from graphene_sqlalchemy import SQLAlchemyObjectType
 
+
+engine = create_engine('sqlite://')
 Base = declarative_base() 
 Session = sessionmaker()
+
+
+class User(Base):
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+
 
 class UserFilter(FilterSet):  # pattern for custom filters name: ModelName + Filter
     class Meta:
@@ -49,6 +58,9 @@ class Query(
         exclude_models = ["Address"] # exclude models
         # custom_filters_path = 'your_package.filters'  # it scan for filters and compare filter name and model name 
         # custom_schemas_path = 'your_package.nodes'  # same as above
+        # base_filter_class = MyFilterSet,  # type: graphene_sqlalchemy_filter.FilterSet
+        # custom_connection = MyConnection,  # type: graphene.Connection
+        # custom_connection_field = MyConnectionField  # type: graphene_sqlalchemy.SQLAlchemyConnectionField
 
 class Mutation(MutationObjectType):
     class Meta:
