@@ -49,6 +49,14 @@ class UserNode(SQLAlchemyObjectType):  # pattern for custom node name: ModelName
         return 'foobar'
 
 
+# declare our custom connection field
+class CustomConnectionField(FilterableConnectionField):
+    pass
+
+# init CustomConnectionField (init mapping for model: filter)
+init_custom_connection(CustomConnectionField, Base, 'your_package.api.filters')
+
+
 class Query(
     QueryObjectType,
     # And other queries...
@@ -60,7 +68,7 @@ class Query(
         # custom_schemas_path = 'your_package.nodes'  # same as above
         # base_filter_class = MyFilterSet,  # type: graphene_sqlalchemy_filter.FilterSet
         # custom_connection = MyConnection,  # type: graphene.Connection
-        # custom_connection_field = MyConnectionField  # type: graphene_sqlalchemy.SQLAlchemyConnectionField
+        # custom_connection_field = CustomConnectionField  # type: graphene_sqlalchemy.SQLAlchemyConnectionField
 
 class Mutation(MutationObjectType):
     class Meta:
