@@ -1,6 +1,6 @@
 import graphene
 
-from graphene_sqlalchemy_auto import QueryObjectType, MutationObjectType
+from graphene_sqlalchemy_auto_filter import QueryObjectType, MutationObjectType
 from .extensions import db
 
 

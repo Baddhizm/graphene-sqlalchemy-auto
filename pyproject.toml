@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "graphene-sqlalchemy-auto-filter"
-version = "0.10.0"
+version = "1.0.0"
 homepage = "https://github.com/Baddhizm/graphene-sqlalchemy-auto-filter"
 repository = "https://github.com/Baddhizm/graphene-sqlalchemy-auto-filter.git"
 documentation = "https://github.com/Baddhizm/graphene-sqlalchemy-auto-filter"
 packages = [
-    { include = "graphene_sqlalchemy_auto" }
+    { include = "graphene_sqlalchemy_auto_filter" }
 ]
 description = """generate default graphene schema from sqlalchemy model base on [graphene-sqlalchemy](https://github.com/graphql-python/graphene-sqlalchemy.git)
 """
