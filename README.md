@@ -49,14 +49,6 @@ class UserNode(SQLAlchemyObjectType):  # pattern for custom node name: ModelName
         return 'foobar'
 
 
-# declare our custom connection field
-class CustomConnectionField(FilterableConnectionField):
-    pass
-
-# init CustomConnectionField (init mapping for model: filter)
-init_custom_connection(CustomConnectionField, Base, 'your_package.api.filters')
-
-
 class Query(
     QueryObjectType,
     # And other queries...

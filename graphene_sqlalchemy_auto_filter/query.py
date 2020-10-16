@@ -1,5 +1,6 @@
 import logging
 from collections import OrderedDict
+from importlib import import_module
 from typing import List
 
 import graphene
@@ -87,7 +88,7 @@ def filter_factory(
     filter_class_name = sqla_model.__name__ + "Filter"
     try:
         # import our filters if exists
-        filter_class = getattr(custom_filters_path, filter_class_name)
+        filter_class = getattr(import_module(custom_filters_path), filter_class_name)
     except AttributeError:
         logging.debug(
             "Can't get {} from {} - auto generate".format(
@@ -114,7 +115,7 @@ def node_factory(
 
     try:
         # import our nodes if exists
-        model_node_class = getattr(custom_schemas_path, node_name)
+        model_node_class = getattr(import_module(custom_schemas_path), node_name)
     except AttributeError:
         logging.debug(
             "Can't get {} from {} - auto generate".format(
@@ -177,6 +178,13 @@ class QueryObjectType(ObjectType):
         logging.info("Generate auto query...")
         if not _meta:
             _meta = ObjectTypeOptions(cls)
+        init_custom_connection_field(
+            custom_connection_field,
+            declarative_base,
+            custom_filters_path,
+            exclude_models,
+            base_filter_class,
+        )
         fields = OrderedDict()
         fields["node"] = graphene.relay.Node.Field()
         for model in custom_connection_field.filters:
